@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>QR Counter · Escáner ultrarrápido</title>
+  <title>QR Counter · Escáner Ráfaga</title>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,32 +11,37 @@
     .card { background: white; border-radius: 1.5rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     button { background: #3b82f6; color: white; border: none; padding: 0.8rem 1.2rem; border-radius: 2rem; font-weight: bold; width: 100%; cursor: pointer; margin-top: 0.5rem; }
     .error-box { background: #fee2e2; color: #991b1b; padding: 1rem; border-radius: 1rem; margin: 1rem 0; }
-    video { width: 100%; border-radius: 1rem; background: black; aspect-ratio: 4/3; }
+    video { width: 100%; border-radius: 1rem; background: black; aspect-ratio: 4/3; object-fit: cover; }
     input, textarea { width: 100%; padding: 0.7rem; border-radius: 1rem; border: 1px solid #ccc; margin-top: 0.5rem; }
+    .scan-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,255,0,0.5); width: 80%; height: 80%; pointer-events: none; border-radius: 1rem; display: none; }
+    .modal-container { position: relative; }
   </style>
 </head>
 <body>
 <div style="max-width: 600px; margin: auto;">
-  <h1>⚡ QR Counter (Rápido)</h1>
+  <h1>⚡ QR Counter (Ráfaga)</h1>
   <div class="card">
-    <button id="abrirCamara">📸 Escanear con cámara</button>
+    <button id="abrirCamara">📸 Escanear ultrarrápido</button>
     <hr style="margin: 1rem 0;">
     <details>
-      <summary>✍️ Ingresar código QR manualmente</summary>
-      <textarea id="manualQR" rows="2" placeholder="Pega el contenido del QR aquí..."></textarea>
-      <button id="guardarManual">➕ Guardar manual</button>
+      <summary>✍️ Ingresar manual</summary>
+      <textarea id="manualQR" rows="2" placeholder="Pega el contenido..."></textarea>
+      <button id="guardarManual">➕ Guardar</button>
     </details>
   </div>
   <div class="card">
-    <h3>📊 Total escaneos: <span id="total">0</span></h3>
+    <h3>📊 Total: <span id="total">0</span></h3>
     <h3>🔖 Último QR:</h3>
     <div id="ultimo">—</div>
   </div>
   <div id="historial" class="card"></div>
 </div>
 
-<div id="modalCamara" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:1000; flex-direction:column; align-items:center; justify-content:center;">
-  <video id="video" autoplay playsinline muted style="width:90%; max-width:500px; border-radius:1rem;"></video>
+<div id="modalCamara" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:1000; align-items:center; justify-content:center; flex-direction:column;">
+  <div style="position: relative; width:90%; max-width:500px;">
+    <video id="video" autoplay playsinline muted style="width:100%; border-radius:1rem;"></video>
+    <div id="scanFlash" style="position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,255,0,0.3); border-radius:1rem; pointer-events:none; opacity:0; transition: opacity 0.05s;"></div>
+  </div>
   <div style="margin-top:1rem; display:flex; gap:1rem;">
     <button id="cerrarCamara" style="background:#ef4444;">❌ Cerrar</button>
     <button id="reintentarCamara" style="background:#3b82f6;">🔄 Reintentar</button>
@@ -45,7 +50,7 @@
 </div>
 
 <script>
-  // ---------- BASE DE DATOS ----------
+  // ---------- BD ----------
   const DB_NAME = 'QRUltraDB';
   let db = null;
   let lastSaved = null;
@@ -91,18 +96,24 @@
       const req = tx.objectStore('scans').add(nuevo);
       req.onsuccess = () => { 
         lastSaved = content; 
-        actualizarUI(); 
-        // Feedback: sonido + vibración
+        actualizarUI();
+        // Feedback
         try {
           new AudioContext().then(ctx => {
             const o = ctx.createOscillator();
             o.connect(ctx.destination);
             o.start();
-            o.stop(ctx.currentTime + 0.1);
+            o.stop(ctx.currentTime + 0.08);
             ctx.resume();
           });
         } catch(e) {}
-        if (navigator.vibrate) navigator.vibrate(50);
+        if (navigator.vibrate) navigator.vibrate(30);
+        // Flash visual
+        const flash = document.getElementById('scanFlash');
+        if (flash) {
+          flash.style.opacity = '0.7';
+          setTimeout(() => flash.style.opacity = '0', 80);
+        }
         resolve(true);
       };
       req.onerror = () => resolve(false);
@@ -134,94 +145,135 @@
     `).join('');
   }
 
-  // ---------- CÁMARA ULTRARRÁPIDA (sin retardos) ----------
-  let streamActivo = null;
-  let animFrame = null;
-  let escaneando = false;
-  let canvas = null;        // canvas reutilizable
+  // ---------- ESCÁNER ULTRARRÁPIDO ----------
+  let stream = null;
+  let animationId = null;
+  let scanning = false;
+  let video = null;
+  let canvas = null;
   let ctx = null;
-  const video = document.getElementById('video');
+  let scanFrameCount = 0;
+  let lastProcessTime = 0;
+  const PROCESS_EVERY_FRAME = true; // sin saltos
+
   const modal = document.getElementById('modalCamara');
   const errorDiv = document.getElementById('errorCamara');
+  const videoEl = document.getElementById('video');
 
   async function iniciarCamara() {
-    if (streamActivo) detenerCamara();
+    if (stream) detenerCamara();
     try {
-      // Intentar cámara trasera, si falla la frontal
-      let constraints = { video: { facingMode: { exact: 'environment' } } };
-      let stream;
+      // Forzar resolución baja para velocidad (640x480)
+      const constraints = {
+        video: {
+          facingMode: { exact: 'environment' },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      };
+      let mediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (e) {
-        constraints = { video: true };
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        // Si falla exacta, usar cualquier cámara
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
-      streamActivo = stream;
-      video.srcObject = stream;
-      await video.play();
-      escaneando = true;
+      stream = mediaStream;
+      videoEl.srcObject = stream;
+      await videoEl.play();
+      // Reducir la resolución real del video si es posible (no siempre)
+      if (videoEl.videoWidth > 800) {
+        // No podemos forzar, pero jsQR escalará internamente
+      }
+      scanning = true;
       errorDiv.style.display = 'none';
-      // Inicializar canvas reutilizable
+      // Preparar canvas reutilizable
       canvas = document.createElement('canvas');
       ctx = canvas.getContext('2d');
-      bucleEscaneo();
+      // Usar requestVideoFrameCallback para mejor sincronización (si existe)
+      if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+        console.log('Usando requestVideoFrameCallback');
+        function frameCallback(now, metadata) {
+          if (!scanning) return;
+          procesarFrame();
+          videoEl.requestVideoFrameCallback(frameCallback);
+        }
+        videoEl.requestVideoFrameCallback(frameCallback);
+      } else {
+        // Fallback a requestAnimationFrame
+        function animLoop() {
+          if (!scanning) return;
+          procesarFrame();
+          requestAnimationFrame(animLoop);
+        }
+        animLoop();
+      }
     } catch (err) {
       let mensaje = '';
-      if (err.name === 'NotAllowedError') {
-        mensaje = '❌ Permiso de cámara denegado. Habilítalo en el candado de la URL.';
-      } else if (err.name === 'NotFoundError') {
-        mensaje = '❌ No se detectó cámara. Usa entrada manual.';
-      } else {
-        mensaje = `❌ Error: ${err.message}. Usa HTTPS o servidor local.`;
-      }
+      if (err.name === 'NotAllowedError') mensaje = '❌ Permiso denegado. Habilita cámara en el candado.';
+      else if (err.name === 'NotFoundError') mensaje = '❌ No hay cámara.';
+      else mensaje = `❌ ${err.message}`;
       errorDiv.innerText = mensaje;
       errorDiv.style.display = 'block';
-      escaneando = false;
+      scanning = false;
+    }
+  }
+
+  function procesarFrame() {
+    if (!scanning || !videoEl || videoEl.readyState !== videoEl.HAVE_ENOUGH_DATA || videoEl.videoWidth === 0) return;
+    
+    // Escalar para acelerar: reducir el tamaño del canvas a la mitad? No, mejor usar el tamaño original pero jsQR ya es rápido.
+    // Para máxima velocidad, reducir resolución a 320x240 (opcional)
+    let scale = 1;
+    let targetW = videoEl.videoWidth;
+    let targetH = videoEl.videoHeight;
+    // Opcional: reducir si es muy grande (>640)
+    if (targetW > 640) {
+      scale = 640 / targetW;
+      targetW = 640;
+      targetH = Math.floor(videoEl.videoHeight * scale);
+    }
+    if (canvas.width !== targetW) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+    ctx.drawImage(videoEl, 0, 0, videoEl.videoWidth, videoEl.videoHeight, 0, 0, targetW, targetH);
+    const imgData = ctx.getImageData(0, 0, targetW, targetH);
+    // jsQR con opciones rápidas
+    const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
+    if (code && code.data) {
+      const texto = code.data;
+      if (lastSaved !== texto) {
+        guardarQR(texto);
+      }
     }
   }
 
   function detenerCamara() {
-    escaneando = false;
-    if (animFrame) cancelAnimationFrame(animFrame);
-    if (streamActivo) {
-      streamActivo.getTracks().forEach(t => t.stop());
-      streamActivo = null;
+    scanning = false;
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
     }
-    video.srcObject = null;
+    videoEl.srcObject = null;
     canvas = null;
     ctx = null;
   }
 
-  function bucleEscaneo() {
-    if (!escaneando) return;
-    if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
-      // Redimensionar canvas solo si cambia el tamaño del video
-      if (canvas.width !== video.videoWidth) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-      }
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
-      if (code && code.data) {
-        const texto = code.data;
-        // Solo evitar duplicado consecutivo exacto (sin retardo temporal)
-        if (lastSaved !== texto) {
-          guardarQR(texto);
-        }
-      }
-    }
-    animFrame = requestAnimationFrame(bucleEscaneo);
+  function abrirModal() {
+    modal.style.display = 'flex';
+    iniciarCamara();
+  }
+  function cerrarModal() {
+    detenerCamara();
+    modal.style.display = 'none';
   }
 
-  function abrirModal() { modal.style.display = 'flex'; iniciarCamara(); }
-  function cerrarModal() { detenerCamara(); modal.style.display = 'none'; }
-
-  // Guardado manual
+  // Manual
   document.getElementById('guardarManual').onclick = async () => {
-    const texto = document.getElementById('manualQR').value.trim();
-    if (!texto) return alert('Escribe o pega el contenido del QR');
-    await guardarQR(texto);
+    const txt = document.getElementById('manualQR').value.trim();
+    if (!txt) return alert('Escribe algo');
+    await guardarQR(txt);
     document.getElementById('manualQR').value = '';
   };
 
@@ -232,7 +284,10 @@
     await actualizarUI();
     document.getElementById('abrirCamara').onclick = abrirModal;
     document.getElementById('cerrarCamara').onclick = cerrarModal;
-    document.getElementById('reintentarCamara').onclick = () => { iniciarCamara(); };
+    document.getElementById('reintentarCamara').onclick = () => {
+      detenerCamara();
+      iniciarCamara();
+    };
   };
 </script>
 </body>
