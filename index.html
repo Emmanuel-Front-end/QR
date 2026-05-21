@@ -4,53 +4,111 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>QR Counter · Escáner Rápido</title>
+  <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22QR%20Counter%22,%22short_name%22:%22QRCounter%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%230f172a%22,%22theme_color%22:%22%233b82f6%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20512%20512'%3E%3Crect%20width='512'%20height='512'%20fill='%233b82f6'/%3E%3Ctext%20x='256'%20y='384'%20text-anchor='middle'%20fill='white'%20font-size='350'%20font-family='monospace'%3E📷%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22}]}">
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
-    /* ===== ESTILOS ===== */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --border: #e2e8f0;
+      --accent: #3b82f6;
+      --accent-dark: #2563eb;
+      --danger: #ef4444;
+    }
+    body.dark {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --border: #334155;
+    }
     body {
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      background: #f1f5f9;
-      padding: 1rem;
-      padding-bottom: 3rem;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1rem 1rem 2rem;
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
     }
     .container { max-width: 600px; margin: 0 auto; }
     .card {
-      background: white;
+      background: var(--surface);
       border-radius: 1.5rem;
       padding: 1.2rem;
       margin-bottom: 1.2rem;
+      border: 1px solid var(--border);
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      border: 1px solid #e2e8f0;
     }
-    h1 { font-size: 1.8rem; background: linear-gradient(135deg, #3b82f6, #8b5cf6); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    h1 {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
     .btn-primary {
-      background: #3b82f6;
+      background: var(--accent);
       color: white;
       border: none;
       width: 100%;
-      padding: 0.9rem;
+      padding: 1rem;
       border-radius: 2rem;
       font-weight: bold;
-      font-size: 1rem;
+      font-size: 1.1rem;
       cursor: pointer;
+      transition: transform 0.05s linear;
     }
-    .counter { font-size: 2.5rem; font-weight: 800; text-align: center; color: #3b82f6; margin: 0.5rem 0; }
+    .btn-primary:active { transform: scale(0.97); }
+    .counter {
+      font-size: 2.8rem;
+      font-weight: 800;
+      text-align: center;
+      color: var(--accent);
+      margin: 0.5rem 0;
+    }
+    .flex-btns {
+      display: flex;
+      gap: 0.8rem;
+      margin: 1rem 0;
+    }
+    button {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      border-radius: 2rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text);
+    }
     video {
       width: 100%;
       border-radius: 1rem;
       background: black;
-      margin-top: 0.5rem;
       aspect-ratio: 4/3;
       object-fit: cover;
     }
-    .flex-btns { display: flex; gap: 1rem; margin: 1rem 0; }
-    button { background: #e2e8f0; color: #1e293b; border: none; padding: 0.7rem; border-radius: 2rem; width: 100%; cursor: pointer; font-weight: bold; }
-    details { margin-top: 0.5rem; }
+    details { margin-top: 0.8rem; }
     summary { font-weight: bold; cursor: pointer; }
-    textarea, input { width: 100%; padding: 0.7rem; border-radius: 1rem; border: 1px solid #cbd5e1; font-family: monospace; margin-top: 0.5rem; }
+    textarea, input {
+      width: 100%;
+      padding: 0.7rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: monospace;
+      margin-top: 0.5rem;
+    }
     .history-item {
-      background: #f8fafc;
+      background: var(--bg);
       border-radius: 1rem;
       padding: 0.7rem;
       margin-bottom: 0.6rem;
@@ -58,23 +116,77 @@
       justify-content: space-between;
       align-items: center;
     }
-    .delete-btn { background: #ef4444; color: white; width: auto; padding: 0.3rem 0.8rem; }
-    .badge { background: #3b82f6; color: white; border-radius: 2rem; padding: 0.2rem 0.6rem; font-size: 0.7rem; display: inline-block; }
-    .error-box { background: #fee2e2; color: #991b1b; padding: 0.8rem; border-radius: 1rem; margin: 1rem 0; font-size: 0.85rem; }
+    .delete-btn {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 0.3rem 0.8rem;
+      border-radius: 2rem;
+    }
+    .badge {
+      background: var(--accent);
+      color: white;
+      border-radius: 2rem;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.7rem;
+      display: inline-block;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      z-index: 2000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .theme-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--surface);
+      border-radius: 3rem;
+      padding: 0.6rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not(.light) { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --text-secondary: #cbd5e1; --border: #334155; }
+    }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>📱 QR Counter ⚡</h1>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h1>⚡ QR Counter</h1>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+  </div>
 
   <div class="card">
-    <button id="openCameraBtn" class="btn-primary">📸 Escanear con cámara</button>
-    <div id="cameraAdvice" class="error-box" style="display: none;"></div>
+    <button id="openCameraBtn" class="btn-primary">📸 Escanear QR (rápido)</button>
+    <div id="cameraAdvice" style="background:#fee2e2; color:#991b1b; padding:0.8rem; border-radius:1rem; margin-top:1rem; display:none;"></div>
     <hr style="margin: 1rem 0;">
     <details>
-      <summary>✏️ Ingresar QR manualmente</summary>
-      <textarea id="manualText" rows="2" placeholder="Pega el contenido del código QR..."></textarea>
-      <button id="saveManualBtn">➕ Guardar manual</button>
+      <summary>✏️ Ingresar manualmente</summary>
+      <textarea id="manualText" rows="2" placeholder="Pega el contenido del QR..."></textarea>
+      <button id="saveManualBtn">➕ Guardar</button>
     </details>
   </div>
 
@@ -83,21 +195,20 @@
     <div class="counter" id="totalCount">0</div>
     <div><strong>Último QR:</strong></div>
     <div id="lastContent">—</div>
-    <div id="lastDate" style="font-size:0.8rem; color:#475569;"></div>
+    <div id="lastDate" style="font-size:0.8rem;"></div>
   </div>
 
   <div class="card">
-    <h3>📜 Historial completo</h3>
-    <input type="text" id="searchHistory" placeholder="🔍 Buscar..." style="margin-bottom: 0.8rem;">
+    <h3>📜 Historial</h3>
+    <input type="text" id="searchHistory" placeholder="🔍 Buscar...">
     <div id="historyList"></div>
     <button id="exportCsv">📎 Exportar CSV</button>
   </div>
 </div>
 
-<!-- Modal cámara optimizado -->
-<div id="cameraModal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
-  <video id="video" autoplay playsinline muted style="width:90%; max-width:500px; border-radius:1rem;"></video>
-  <div class="flex-btns" style="width:90%; max-width:500px;">
+<div id="cameraModal" class="modal">
+  <video id="video" autoplay playsinline muted></video>
+  <div class="flex-btns" style="width:90%; max-width:500px; margin-top:1rem;">
     <button id="closeCameraBtn" style="background:#ef4444; color:white;">❌ Cerrar</button>
     <button id="retryCameraBtn" style="background:#3b82f6; color:white;">🔄 Reintentar</button>
   </div>
@@ -105,7 +216,7 @@
 </div>
 
 <script>
-  // ======================== 1. BASE DE DATOS (INDEXEDDB) ========================
+  // ========== 1. BASE DE DATOS ==========
   const DB_NAME = 'QRFastDB';
   let db = null;
   let lastSavedContent = null;
@@ -137,7 +248,7 @@
     });
   }
 
-  async function addScanToDB(content) {
+  async function addScan(content) {
     if (!content || content === lastSavedContent) return false;
     const scans = await getAllScans();
     const nextNum = scans.length ? Math.max(...scans.map(s => s.num || 0)) + 1 : 1;
@@ -152,7 +263,6 @@
       req.onsuccess = () => {
         lastSavedContent = content;
         refreshUI();
-        // Feedback rápido (vibración + sonido opcional)
         if (navigator.vibrate) navigator.vibrate(50);
         try {
           new AudioContext().then(ctx => {
@@ -175,7 +285,7 @@
     tx.objectStore('scans').delete(id);
     await tx.complete;
     refreshUI();
-    toast('Registro eliminado');
+    toast('Eliminado');
   }
 
   async function refreshUI() {
@@ -202,39 +312,36 @@
     `).join('');
     document.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (confirm('¿Eliminar este registro?')) await deleteScan(Number(btn.dataset.id));
+        if (confirm('¿Eliminar?')) await deleteScan(Number(btn.dataset.id));
       });
     });
   }
 
   function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
-  function toast(msg) { let t = document.querySelector('.toast'); if(t) t.remove(); const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; d.style.position = 'fixed'; d.style.bottom = '20px'; d.style.left = '50%'; d.style.transform = 'translateX(-50%)'; d.style.background = '#1e293b'; d.style.color = 'white'; d.style.padding = '0.5rem 1rem'; d.style.borderRadius = '2rem'; d.style.zIndex = '9999'; document.body.appendChild(d); setTimeout(()=>d.remove(), 2000); }
+  function toast(msg) { let t = document.querySelector('.toast'); if(t) t.remove(); const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; document.body.appendChild(d); setTimeout(()=>d.remove(), 2000); }
 
-  // ======================== 2. CÁMARA OPTIMIZADA ========================
-  let cameraStream = null;
-  let scanningActive = false;
-  let animationId = null;
+  // ========== 2. CÁMARA ULTRARRÁPIDA ==========
+  let stream = null;
+  let scanning = false;
+  let animId = null;
   let lastScanTime = 0;
-  const MIN_FRAME_INTERVAL = 120; // ~8 escaneos por segundo máximo, evita duplicados en ráfaga pero mantiene fluidez
-
+  const MIN_INTERVAL = 100; // 10 escaneos/segundo máximo, evita duplicados pero no bloquea
   const video = document.getElementById('video');
   const modal = document.getElementById('cameraModal');
-  const errorMsg = document.getElementById('cameraErrorMsg');
+  const errorDiv = document.getElementById('cameraErrorMsg');
   const adviceDiv = document.getElementById('cameraAdvice');
 
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isFileProtocol = window.location.protocol === 'file:';
-
-  if (isMobile && isFileProtocol) {
+  const isFile = location.protocol === 'file:';
+  if (isMobile && isFile) {
     adviceDiv.style.display = 'block';
-    adviceDiv.innerHTML = '⚠️ <strong>Estás en un móvil abriendo el archivo localmente.</strong> La cámara NO funcionará.<br>📌 Solución: Sirve este archivo con un servidor local desde un PC y accede desde el móvil (mismo WiFi). O usa la opción de "Ingresar QR manualmente".';
+    adviceDiv.innerHTML = '⚠️ En móvil necesitas un servidor local (localhost) para la cámara. Usa "python -m http.server" o "npx serve". También puedes usar entrada manual.';
   }
 
-  // Función mejorada para iniciar cámara con resolución baja y manejo de errores
   async function startCamera() {
-    if (cameraStream) stopCamera();
+    if (stream) stopCamera();
     try {
-      // Configuración CRÍTICA: resoluciones pequeñas para máxima velocidad (480x360 o similar)
+      // Resolución baja para máxima velocidad (480x360)
       const constraints = {
         video: {
           facingMode: { exact: 'environment' },
@@ -242,66 +349,42 @@
           height: { ideal: 360 }
         }
       };
-      let stream;
+      let mediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (e) {
-        // Si falla cámara trasera exacta, intentamos cualquier cámara con resolución reducida
-        const fallbackConstraints = {
-          video: {
-            width: { ideal: 480 },
-            height: { ideal: 360 }
-          }
-        };
-        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        // Sin trasera exacta, cualquier cámara con baja resolución
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 480 }, height: { ideal: 360 } } });
       }
-      cameraStream = stream;
+      stream = mediaStream;
       video.srcObject = stream;
-      
-      // 🔧 MANEJO DEL ERROR DE PLAY: esperar a que el video esté listo y capturar la promesa
-      try {
-        await video.play();
-      } catch (playErr) {
-        console.warn('Error en video.play():', playErr);
-        // Si falla, reintentamos después de un breve momento
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await video.play();
-      }
-      
-      scanningActive = true;
-      errorMsg.style.display = 'none';
-      // Iniciamos el bucle de escaneo con frame rate controlado
+      await video.play();
+      scanning = true;
+      errorDiv.style.display = 'none';
       scanLoop();
     } catch (err) {
-      let mensaje = '';
-      if (err.name === 'NotAllowedError') {
-        mensaje = '❌ Permiso de cámara denegado.\n🔧 Solución: Haz clic en el candado 🔒 en la barra de direcciones → Permisos → Cámara → Permitir. Luego recarga.';
-      } else if (err.name === 'NotFoundError') {
-        mensaje = '❌ No se encontró cámara. Usa la entrada manual o imagen.';
-      } else {
-        mensaje = `❌ Error: ${err.message}. Asegúrate de usar un servidor local (localhost) y permisos.`;
-      }
-      errorMsg.innerText = mensaje;
-      errorMsg.style.display = 'block';
-      scanningActive = false;
-      return false;
+      let msg = '';
+      if (err.name === 'NotAllowedError') msg = '❌ Permiso denegado. Haz clic en el candado 🔒 y permite la cámara.';
+      else if (err.name === 'NotFoundError') msg = '❌ No se encontró cámara. Usa entrada manual.';
+      else msg = `❌ Error: ${err.message}. Sirve la app con un servidor local (localhost)`;
+      errorDiv.innerText = msg;
+      errorDiv.style.display = 'block';
+      scanning = false;
     }
-    return true;
   }
 
   function stopCamera() {
-    scanningActive = false;
-    if (animationId) cancelAnimationFrame(animationId);
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(t => t.stop());
-      cameraStream = null;
+    scanning = false;
+    if (animId) cancelAnimationFrame(animId);
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
     }
     video.srcObject = null;
   }
 
-  // Bucle de escaneo optimizado y sin retardo, solo control de guardado
   function scanLoop() {
-    if (!scanningActive) return;
+    if (!scanning) return;
     if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
@@ -310,57 +393,68 @@
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
-      
       if (code && code.data) {
         const now = Date.now();
-        // Solo limitamos el guardado para evitar duplicados super rápidos del mismo código
-        if (lastSavedContent !== code.data && (now - lastScanTime >= MIN_FRAME_INTERVAL)) {
+        if (lastSavedContent !== code.data && (now - lastScanTime >= MIN_INTERVAL)) {
           lastScanTime = now;
-          addScanToDB(code.data);
+          addScan(code.data);
         }
       }
     }
-    animationId = requestAnimationFrame(scanLoop);
+    animId = requestAnimationFrame(scanLoop);
   }
 
-  function openCameraModal() {
-    modal.style.display = 'flex';
-    startCamera().catch(e => console.warn(e));
-  }
-  function closeCameraModal() { stopCamera(); modal.style.display = 'none'; }
+  function openModal() { modal.style.display = 'flex'; startCamera(); }
+  function closeModal() { stopCamera(); modal.style.display = 'none'; }
 
-  // ======================== 3. EXPORTAR CSV ========================
-  async function exportToCSV() {
+  // ========== 3. EXPORTAR CSV ==========
+  async function exportCSV() {
     const scans = await getAllScans();
     if (!scans.length) { toast('No hay datos'); return; }
-    const rows = [['N°', 'Contenido QR', 'Fecha/Hora']];
+    const rows = [['N°', 'Contenido', 'Fecha']];
     scans.forEach(s => rows.push([s.num, s.content, new Date(s.timestamp).toLocaleString()]));
-    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `qr_counter_${new Date().toISOString().slice(0,19)}.csv`;
+    a.download = `qr_counter_${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
     toast('CSV exportado');
   }
 
-  // ======================== 4. INICIALIZACIÓN ========================
+  // ========== 4. TEMA OSCURO/CLARO ==========
+  function initTheme() {
+    const dark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) document.body.classList.add('dark');
+    else document.body.classList.remove('dark');
+    document.getElementById('themeToggle').innerHTML = dark ? '☀️' : '🌙';
+  }
+  function toggleTheme() {
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    document.getElementById('themeToggle').innerHTML = isDark ? '☀️' : '🌙';
+  }
+
+  // ========== 5. INICIALIZACIÓN ==========
   window.addEventListener('load', async () => {
     await openDB();
     await refreshUI();
+    initTheme();
 
-    document.getElementById('openCameraBtn').addEventListener('click', openCameraModal);
-    document.getElementById('closeCameraBtn').addEventListener('click', closeCameraModal);
+    document.getElementById('openCameraBtn').addEventListener('click', openModal);
+    document.getElementById('closeCameraBtn').addEventListener('click', closeModal);
     document.getElementById('retryCameraBtn').addEventListener('click', () => startCamera());
     document.getElementById('saveManualBtn').addEventListener('click', async () => {
       const txt = document.getElementById('manualText').value.trim();
-      if (txt) { await addScanToDB(txt); document.getElementById('manualText').value = ''; }
+      if (txt) { await addScan(txt); document.getElementById('manualText').value = ''; }
       else toast('Escribe un contenido');
     });
-    document.getElementById('exportCsv').addEventListener('click', exportToCSV);
+    document.getElementById('exportCsv').addEventListener('click', exportCSV);
     document.getElementById('searchHistory').addEventListener('input', () => refreshUI());
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeCameraModal(); });
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   });
 </script>
 </body>
