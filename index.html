@@ -3,66 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>QR Counter · Escaneo ultrarrápido continuo</title>
+  <title>QR Counter · Escáner Rápido</title>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
+    /* ===== ESTILOS ===== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #f0f4f8; padding: 1rem; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #f1f5f9;
+      padding: 1rem;
+      padding-bottom: 3rem;
+    }
     .container { max-width: 600px; margin: 0 auto; }
-    .card { background: white; border-radius: 1.5rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .card {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 1.2rem;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
     h1 { font-size: 1.8rem; background: linear-gradient(135deg, #3b82f6, #8b5cf6); background-clip: text; -webkit-background-clip: text; color: transparent; }
-    button { background: #3b82f6; color: white; border: none; padding: 0.8rem 1.2rem; border-radius: 2rem; font-weight: bold; width: 100%; cursor: pointer; margin-top: 0.5rem; transition: transform 0.05s linear; }
-    button:active { transform: scale(0.97); }
-    .counter { font-size: 2.5rem; font-weight: 800; text-align: center; color: #3b82f6; }
-    video { width: 100%; border-radius: 1rem; background: #000; aspect-ratio: 4/3; object-fit: cover; }
-    .error-box { background: #fee2e2; color: #991b1b; padding: 0.8rem; border-radius: 1rem; margin: 1rem 0; font-size: 0.85rem; }
-    .history-item { background: #f8fafc; border-radius: 1rem; padding: 0.7rem; margin-bottom: 0.6rem; display: flex; justify-content: space-between; align-items: center; }
-    .delete-btn { background: #ef4444; color: white; border: none; border-radius: 2rem; padding: 0.3rem 0.8rem; cursor: pointer; width: auto; margin: 0; }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 0.9rem;
+      border-radius: 2rem;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .counter { font-size: 2.5rem; font-weight: 800; text-align: center; color: #3b82f6; margin: 0.5rem 0; }
+    video {
+      width: 100%;
+      border-radius: 1rem;
+      background: black;
+      margin-top: 0.5rem;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+    .flex-btns { display: flex; gap: 1rem; margin: 1rem 0; }
+    button { background: #e2e8f0; color: #1e293b; border: none; padding: 0.7rem; border-radius: 2rem; width: 100%; cursor: pointer; font-weight: bold; }
+    details { margin-top: 0.5rem; }
+    summary { font-weight: bold; cursor: pointer; }
+    textarea, input { width: 100%; padding: 0.7rem; border-radius: 1rem; border: 1px solid #cbd5e1; font-family: monospace; margin-top: 0.5rem; }
+    .history-item {
+      background: #f8fafc;
+      border-radius: 1rem;
+      padding: 0.7rem;
+      margin-bottom: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .delete-btn { background: #ef4444; color: white; width: auto; padding: 0.3rem 0.8rem; }
     .badge { background: #3b82f6; color: white; border-radius: 2rem; padding: 0.2rem 0.6rem; font-size: 0.7rem; display: inline-block; }
-    .scan-status { text-align: center; font-size: 0.8rem; margin-top: 0.5rem; color: #475569; }
+    .error-box { background: #fee2e2; color: #991b1b; padding: 0.8rem; border-radius: 1rem; margin: 1rem 0; font-size: 0.85rem; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>⚡ QR Counter · Modo Rápido</h1>
+  <h1>📱 QR Counter ⚡</h1>
+
   <div class="card">
-    <button id="openCameraBtn">📸 Escanear QR (continuo ultrarrápido)</button>
+    <button id="openCameraBtn" class="btn-primary">📸 Escanear con cámara</button>
     <div id="cameraAdvice" class="error-box" style="display: none;"></div>
-    <hr>
+    <hr style="margin: 1rem 0;">
     <details>
-      <summary>✏️ Ingresar QR manual</summary>
-      <textarea id="manualText" rows="2" placeholder="Pega el contenido aquí..."></textarea>
-      <button id="saveManualBtn">➕ Guardar</button>
+      <summary>✏️ Ingresar QR manualmente</summary>
+      <textarea id="manualText" rows="2" placeholder="Pega el contenido del código QR..."></textarea>
+      <button id="saveManualBtn">➕ Guardar manual</button>
     </details>
   </div>
+
   <div class="card">
-    <div style="text-align: center;">📊 TOTAL ESCANEOS</div>
+    <div style="text-align:center">📊 TOTAL ESCANEOS</div>
     <div class="counter" id="totalCount">0</div>
     <div><strong>Último QR:</strong></div>
     <div id="lastContent">—</div>
-    <div id="lastDate" style="font-size: 0.8rem;"></div>
+    <div id="lastDate" style="font-size:0.8rem; color:#475569;"></div>
   </div>
+
   <div class="card">
-    <h3>📜 Historial</h3>
-    <input type="text" id="searchHistory" placeholder="🔍 Buscar..." style="width:100%; padding:0.5rem; border-radius:1rem; border:1px solid #ccc; margin-bottom:0.5rem;">
+    <h3>📜 Historial completo</h3>
+    <input type="text" id="searchHistory" placeholder="🔍 Buscar..." style="margin-bottom: 0.8rem;">
     <div id="historyList"></div>
-    <button id="exportCsvBtn">📎 Exportar CSV</button>
+    <button id="exportCsv">📎 Exportar CSV</button>
   </div>
 </div>
 
-<!-- Modal cámara -->
+<!-- Modal cámara optimizado -->
 <div id="cameraModal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
   <video id="video" autoplay playsinline muted style="width:90%; max-width:500px; border-radius:1rem;"></video>
-  <div class="scan-status" style="color:white;">🔍 Escaneando a máxima velocidad...</div>
-  <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-    <button id="closeCameraBtn" style="background:#ef4444;">❌ Cerrar</button>
-    <button id="retryCameraBtn" style="background:#3b82f6;">🔄 Reintentar</button>
+  <div class="flex-btns" style="width:90%; max-width:500px;">
+    <button id="closeCameraBtn" style="background:#ef4444; color:white;">❌ Cerrar</button>
+    <button id="retryCameraBtn" style="background:#3b82f6; color:white;">🔄 Reintentar</button>
   </div>
   <div id="cameraErrorMsg" style="color:#ffaaaa; background:#330000; padding:0.8rem; border-radius:1rem; margin-top:1rem; width:90%; max-width:500px; text-align:center; display:none;"></div>
 </div>
 
 <script>
-  // ---------- INDEXEDDB ----------
+  // ======================== 1. BASE DE DATOS (INDEXEDDB) ========================
   const DB_NAME = 'QRFastDB';
   let db = null;
   let lastSavedContent = null;
@@ -94,7 +137,7 @@
     });
   }
 
-  async function addScan(content) {
+  async function addScanToDB(content) {
     if (!content || content === lastSavedContent) return false;
     const scans = await getAllScans();
     const nextNum = scans.length ? Math.max(...scans.map(s => s.num || 0)) + 1 : 1;
@@ -109,21 +152,18 @@
       req.onsuccess = () => {
         lastSavedContent = content;
         refreshUI();
-        // Feedback rápido: beep y vibración
-        try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.frequency.value = 880;
-          gain.gain.value = 0.2;
-          osc.start();
-          gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
-          osc.stop(audioCtx.currentTime + 0.1);
-          audioCtx.resume();
-        } catch(e) {}
+        // Feedback rápido (vibración + sonido opcional)
         if (navigator.vibrate) navigator.vibrate(50);
+        try {
+          new AudioContext().then(ctx => {
+            const o = ctx.createOscillator();
+            o.connect(ctx.destination);
+            o.start();
+            o.stop(ctx.currentTime + 0.1);
+            ctx.resume();
+          });
+        } catch(e) {}
+        toast('✅ QR guardado');
         resolve(true);
       };
       req.onerror = () => resolve(false);
@@ -135,6 +175,7 @@
     tx.objectStore('scans').delete(id);
     await tx.complete;
     refreshUI();
+    toast('Registro eliminado');
   }
 
   async function refreshUI() {
@@ -167,131 +208,160 @@
   }
 
   function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+  function toast(msg) { let t = document.querySelector('.toast'); if(t) t.remove(); const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; d.style.position = 'fixed'; d.style.bottom = '20px'; d.style.left = '50%'; d.style.transform = 'translateX(-50%)'; d.style.background = '#1e293b'; d.style.color = 'white'; d.style.padding = '0.5rem 1rem'; d.style.borderRadius = '2rem'; d.style.zIndex = '9999'; document.body.appendChild(d); setTimeout(()=>d.remove(), 2000); }
 
-  // ---------- CÁMARA ULTRARRÁPIDA CON BAJA RESOLUCIÓN ----------
-  let currentStream = null;
-  let scanInterval = null;
+  // ======================== 2. CÁMARA OPTIMIZADA ========================
+  let cameraStream = null;
   let scanningActive = false;
+  let animationId = null;
+  let lastScanTime = 0;
+  const MIN_FRAME_INTERVAL = 120; // ~8 escaneos por segundo máximo, evita duplicados en ráfaga pero mantiene fluidez
+
   const video = document.getElementById('video');
   const modal = document.getElementById('cameraModal');
-  const errorMsgDiv = document.getElementById('cameraErrorMsg');
+  const errorMsg = document.getElementById('cameraErrorMsg');
+  const adviceDiv = document.getElementById('cameraAdvice');
 
-  async function startFastCamera() {
-    if (currentStream) stopCamera();
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isFileProtocol = window.location.protocol === 'file:';
+
+  if (isMobile && isFileProtocol) {
+    adviceDiv.style.display = 'block';
+    adviceDiv.innerHTML = '⚠️ <strong>Estás en un móvil abriendo el archivo localmente.</strong> La cámara NO funcionará.<br>📌 Solución: Sirve este archivo con un servidor local desde un PC y accede desde el móvil (mismo WiFi). O usa la opción de "Ingresar QR manualmente".';
+  }
+
+  // Función mejorada para iniciar cámara con resolución baja y manejo de errores
+  async function startCamera() {
+    if (cameraStream) stopCamera();
     try {
-      // Configurar resolución baja para máxima velocidad (320x240 o similar)
+      // Configuración CRÍTICA: resoluciones pequeñas para máxima velocidad (480x360 o similar)
       const constraints = {
         video: {
           facingMode: { exact: 'environment' },
-          width: { ideal: 320 },
-          height: { ideal: 240 }
+          width: { ideal: 480 },
+          height: { ideal: 360 }
         }
       };
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (e) {
-        // Fallback sin facingMode exacto
-        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
-      }
-      currentStream = stream;
-      video.srcObject = stream;
-      await video.play();
-      scanningActive = true;
-      errorMsgDiv.style.display = 'none';
-      
-      // Escaneo con intervalos cortos (50ms) en lugar de requestAnimationFrame para mayor control
-      if (scanInterval) clearInterval(scanInterval);
-      scanInterval = setInterval(() => {
-        if (!scanningActive || video.readyState !== video.HAVE_ENOUGH_DATA || video.videoWidth === 0) return;
-        
-        // Crear canvas temporal de baja resolución (coincide con el tamaño del video)
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        // jsQR con opciones rápidas
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "dontInvert",
-          greyScaleWeights: { red: 0.3, green: 0.59, blue: 0.11 }
-        });
-        
-        if (code && code.data) {
-          const text = code.data;
-          if (lastSavedContent !== text) {
-            addScan(text);
+        // Si falla cámara trasera exacta, intentamos cualquier cámara con resolución reducida
+        const fallbackConstraints = {
+          video: {
+            width: { ideal: 480 },
+            height: { ideal: 360 }
           }
-        }
-      }, 30); // ~33 fps, pero sin esperar a la animación, más rápido que requestAnimationFrame en algunos casos
+        };
+        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+      }
+      cameraStream = stream;
+      video.srcObject = stream;
       
+      // 🔧 MANEJO DEL ERROR DE PLAY: esperar a que el video esté listo y capturar la promesa
+      try {
+        await video.play();
+      } catch (playErr) {
+        console.warn('Error en video.play():', playErr);
+        // Si falla, reintentamos después de un breve momento
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await video.play();
+      }
+      
+      scanningActive = true;
+      errorMsg.style.display = 'none';
+      // Iniciamos el bucle de escaneo con frame rate controlado
+      scanLoop();
     } catch (err) {
-      let msg = '';
-      if (err.name === 'NotAllowedError') msg = 'Permiso denegado. Habilita la cámara en el candado de la URL.';
-      else if (err.name === 'NotFoundError') msg = 'No se encontró cámara. Usa entrada manual.';
-      else msg = `Error: ${err.message}. Usa servidor local (localhost) o HTTPS.`;
-      errorMsgDiv.innerText = msg;
-      errorMsgDiv.style.display = 'block';
+      let mensaje = '';
+      if (err.name === 'NotAllowedError') {
+        mensaje = '❌ Permiso de cámara denegado.\n🔧 Solución: Haz clic en el candado 🔒 en la barra de direcciones → Permisos → Cámara → Permitir. Luego recarga.';
+      } else if (err.name === 'NotFoundError') {
+        mensaje = '❌ No se encontró cámara. Usa la entrada manual o imagen.';
+      } else {
+        mensaje = `❌ Error: ${err.message}. Asegúrate de usar un servidor local (localhost) y permisos.`;
+      }
+      errorMsg.innerText = mensaje;
+      errorMsg.style.display = 'block';
       scanningActive = false;
+      return false;
     }
+    return true;
   }
 
   function stopCamera() {
     scanningActive = false;
-    if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
-    if (currentStream) {
-      currentStream.getTracks().forEach(t => t.stop());
-      currentStream = null;
+    if (animationId) cancelAnimationFrame(animationId);
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
     }
     video.srcObject = null;
   }
 
-  function openModal() {
-    modal.style.display = 'flex';
-    startFastCamera();
+  // Bucle de escaneo optimizado y sin retardo, solo control de guardado
+  function scanLoop() {
+    if (!scanningActive) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
+      
+      if (code && code.data) {
+        const now = Date.now();
+        // Solo limitamos el guardado para evitar duplicados super rápidos del mismo código
+        if (lastSavedContent !== code.data && (now - lastScanTime >= MIN_FRAME_INTERVAL)) {
+          lastScanTime = now;
+          addScanToDB(code.data);
+        }
+      }
+    }
+    animationId = requestAnimationFrame(scanLoop);
   }
-  function closeModal() { stopCamera(); modal.style.display = 'none'; }
 
-  // ---------- MANUAL Y EXPORTACIÓN ----------
-  document.getElementById('saveManualBtn').onclick = async () => {
-    const txt = document.getElementById('manualText').value.trim();
-    if (!txt) return alert('Ingresa contenido');
-    await addScan(txt);
-    document.getElementById('manualText').value = '';
-  };
+  function openCameraModal() {
+    modal.style.display = 'flex';
+    startCamera().catch(e => console.warn(e));
+  }
+  function closeCameraModal() { stopCamera(); modal.style.display = 'none'; }
 
-  async function exportCSV() {
+  // ======================== 3. EXPORTAR CSV ========================
+  async function exportToCSV() {
     const scans = await getAllScans();
-    if (!scans.length) { alert('No hay datos'); return; }
-    const rows = [['N°', 'Contenido', 'Fecha']];
+    if (!scans.length) { toast('No hay datos'); return; }
+    const rows = [['N°', 'Contenido QR', 'Fecha/Hora']];
     scans.forEach(s => rows.push([s.num, s.content, new Date(s.timestamp).toLocaleString()]));
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `qr_${Date.now()}.csv`;
+    a.download = `qr_counter_${new Date().toISOString().slice(0,19)}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
+    toast('CSV exportado');
   }
 
-  // Detectar si está en file:// y mostrar advertencia
-  if (window.location.protocol === 'file:') {
-    document.getElementById('cameraAdvice').style.display = 'block';
-    document.getElementById('cameraAdvice').innerHTML = '⚠️ Estás abriendo el archivo localmente. La cámara no funcionará. Sirve el archivo con un servidor local (ej: python -m http.server) o usa la entrada manual.';
-  }
-
-  window.onload = async () => {
+  // ======================== 4. INICIALIZACIÓN ========================
+  window.addEventListener('load', async () => {
     await openDB();
     await refreshUI();
-    document.getElementById('openCameraBtn').onclick = openModal;
-    document.getElementById('closeCameraBtn').onclick = closeModal;
-    document.getElementById('retryCameraBtn').onclick = () => { startFastCamera(); };
-    document.getElementById('exportCsvBtn').onclick = exportCSV;
+
+    document.getElementById('openCameraBtn').addEventListener('click', openCameraModal);
+    document.getElementById('closeCameraBtn').addEventListener('click', closeCameraModal);
+    document.getElementById('retryCameraBtn').addEventListener('click', () => startCamera());
+    document.getElementById('saveManualBtn').addEventListener('click', async () => {
+      const txt = document.getElementById('manualText').value.trim();
+      if (txt) { await addScanToDB(txt); document.getElementById('manualText').value = ''; }
+      else toast('Escribe un contenido');
+    });
+    document.getElementById('exportCsv').addEventListener('click', exportToCSV);
     document.getElementById('searchHistory').addEventListener('input', () => refreshUI());
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-  };
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeCameraModal(); });
+  });
 </script>
 </body>
 </html>
